@@ -4,13 +4,11 @@ import jwt from 'jsonwebtoken'
 import Car from "../models/Car.js";
 
 
-// Generate JWT Token
 const generateToken = (userId)=>{
     const payload = userId;
     return jwt.sign(payload, process.env.JWT_SECRET)
 }
 
-// Register User
 export const registerUser = async (req, res)=>{
     try {
         const {name, email, password} = req.body
@@ -35,7 +33,6 @@ export const registerUser = async (req, res)=>{
     }
 }
 
-// Login User 
 export const loginUser = async (req, res)=>{
     try {
         const {email, password} = req.body
@@ -55,7 +52,6 @@ export const loginUser = async (req, res)=>{
     }
 }
 
-// Get User data using Token (JWT)
 export const getUserData = async (req, res) =>{
     try {
         const {user} = req;
@@ -66,7 +62,6 @@ export const getUserData = async (req, res) =>{
     }
 }
 
-// Get All Cars for the Frontend
 export const getCars = async (req, res) =>{
     try {
         const cars = await Car.find({isAvaliable: true})

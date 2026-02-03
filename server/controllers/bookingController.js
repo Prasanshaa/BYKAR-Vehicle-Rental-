@@ -1,5 +1,6 @@
 import Booking from "../models/Booking.js"
 import Car from "../models/Car.js";
+import sendEmail from "../utils/sendEmail.js";
 
 
 // Function to Check Availability of Car for a given Date
@@ -38,33 +39,77 @@ export const checkAvailabilityOfCar = async (req, res)=>{
 }
 
 // API to Create Booking
-export const createBooking = async (req, res)=>{
+export const createBooking = async (req, res) => {
     try {
-        const {_id} = req.user;
-        const {car, pickupDate, returnDate} = req.body;
+        const { _id, email, name } = req.user;
+        const { car, pickupDate, returnDate } = req.body;
 
-        const isAvailable = await checkAvailability(car, pickupDate, returnDate)
-        if(!isAvailable){
-            return res.json({success: false, message: "Car is not available"})
+        const isAvailable = await checkAvailability(car, pickupDate, returnDate);
+        if (!isAvailable) {
+            return res.json({ success: false, message: "Car is not available" });
         }
 
-        const carData = await Car.findById(car)
+        const carData = await Car.findById(car);
 
-        // Calculate price based on pickupDate and returnDate
         const picked = new Date(pickupDate);
         const returned = new Date(returnDate);
-        const noOfDays = Math.ceil((returned - picked) / (1000 * 60 * 60 * 24))
+        const noOfDays = Math.ceil(
+            (returned - picked) / (1000 * 60 * 60 * 24)
+        );
+
         const price = carData.pricePerDay * noOfDays;
 
-        await Booking.create({car, owner: carData.owner, user: _id, pickupDate, returnDate, price})
+        const booking = await Booking.create({
+            car,
+            owner: carData.owner,
+            user: _id,
+            pickupDate,
+            returnDate,
+            price,
+        });
 
-        res.json({success: true, message: "Booking Created"})
+        console.log(" Booking created");
+        console.log(" User email:", email);
+
+        const emailMessage = `
+Hello ${name},
+
+Your vehicle booking has been successfully confirmed 🚗
+
+Vehicle: ${carData.brand} ${carData.model}
+Pickup Date: ${pickupDate}
+Return Date: ${returnDate}
+Total Price: ₹${price}
+
+Thank you for choosing BYKAR Vehicle Rental.
+We wish you a comfortable, safe, and pleasant journey.
+
+Warm regards,  
+BYKAR Team
+
+`;
+
+        //  EMAIL MUST BE IN ITS OWN TRY–CATCH
+        try {
+            console.log(" Starting email sending...");
+            await sendEmail(
+                email,
+                "Vehicle Booking Confirmation - BYKAR",
+                emailMessage
+            );
+            console.log("📨 Email process finished");
+        } catch (emailError) {
+            console.log(" Email failed but booking successful");
+        }
+
+        //  RESPONSE ALWAYS SENT
+        res.json({ success: true, message: "Booking Created" });
 
     } catch (error) {
-        console.log(error.message);
-        res.json({success: false, message: error.message})
+        console.log(" Booking error:", error.message);
+        res.json({ success: false, message: error.message });
     }
-}
+};
 
 // API to List User Bookings 
 export const getUserBookings = async (req, res)=>{
